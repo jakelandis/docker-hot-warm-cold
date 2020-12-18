@@ -5,7 +5,8 @@
   "data_stream": {},
   "template": {
     "settings": {
-      "index.lifecycle.name": "hot-warm-cold"
+      "index.lifecycle.name": "hot-warm-cold",
+      "index.number_of_replicas" : 0
     }
   }
 }

@@ -1,8 +1,8 @@
 version: '3'
 services:
-  elasticsearch:
+  elasticsearch-hot:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
-    container_name: elasticsearch
+    container_name: hot
     environment:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       # - ELASTIC_PASSWORD=foobar
@@ -13,11 +13,47 @@ services:
     ports:
       - 9200:9200
     volumes:
-      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD/hot/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
       - $PWD:/usr/share/elasticsearch/config/docker_host
     networks:
       - esnet
 
+  elasticsearch-warm:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: warm
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      # - ELASTIC_PASSWORD=foobar
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9201:9201
+    volumes:
+      - $PWD/warm/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD:/usr/share/elasticsearch/config/docker_host
+    networks:
+      - esnet
+
+  elasticsearch-cold:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: cold
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      # - ELASTIC_PASSWORD=foobar
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9202:9202
+    volumes:
+      - $PWD/cold/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD:/usr/share/elasticsearch/config/docker_host
+    networks:
+      - esnet
+ 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.10.0
     container_name: kibana
@@ -34,7 +70,7 @@ services:
     volumes:
       - ./kibana.yml:/usr/share/kibana/config/kibana.yml      
     depends_on:
-      - elasticsearch
+      - elasticsearch-hot
 
   minio:
     image: minio/minio
@@ -49,8 +85,6 @@ services:
       - /data:/home/jakelandis/workspace/data/minio
     networks:
       - esnet
-
-  
 
 networks:
   esnet:
