@@ -3,6 +3,7 @@ services:
   elasticsearch-hot:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
     container_name: hot
+    command: ["sh", "-c", "/usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 -s --batch && /usr/local/bin/docker-entrypoint.sh"]
     environment:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       # - ELASTIC_PASSWORD=foobar
@@ -14,6 +15,7 @@ services:
       - 9200:9200
     volumes:
       - $PWD/hot/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD/hot/elasticsearch.keystore:/usr/share/elasticsearch/config/elasticsearch.keystore  
       - $PWD:/usr/share/elasticsearch/config/docker_host
     networks:
       - esnet
@@ -21,6 +23,7 @@ services:
   elasticsearch-warm:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
     container_name: warm
+    command: ["sh", "-c", "/usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 -s --batch && /usr/local/bin/docker-entrypoint.sh"]
     environment:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       # - ELASTIC_PASSWORD=foobar
@@ -32,6 +35,7 @@ services:
       - 9201:9201
     volumes:
       - $PWD/warm/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD/warm/elasticsearch.keystore:/usr/share/elasticsearch/config/elasticsearch.keystore  
       - $PWD:/usr/share/elasticsearch/config/docker_host
     networks:
       - esnet
@@ -39,9 +43,9 @@ services:
   elasticsearch-cold:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
     container_name: cold
+    command: ["sh", "-c", "/usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 -s --batch && /usr/local/bin/docker-entrypoint.sh"]
     environment:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      # - ELASTIC_PASSWORD=foobar
     ulimits:
       memlock:
         soft: -1
@@ -50,6 +54,7 @@ services:
       - 9202:9202
     volumes:
       - $PWD/cold/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD/cold/elasticsearch.keystore:/usr/share/elasticsearch/config/elasticsearch.keystore  
       - $PWD:/usr/share/elasticsearch/config/docker_host
     networks:
       - esnet
@@ -57,12 +62,6 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:7.10.0
     container_name: kibana
-    # environment:
-     # ELASTICSEARCH_URL: http://elasticsearch:9200
-    #  ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-      # - XPACK_SECURITY_ENABLED=true
-      # - ELASTICSEARCH_USERNAME=elastic
-      # - ELASTICSEARCH_PASSWORD=foobar
     ports:
       - "5601:5601"
     networks:

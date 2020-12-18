@@ -13,11 +13,15 @@
         "actions": {}
       },
       "cold": {
-        "min_age": "2m",
-        "actions": {}
+        "min_age": "3m",
+        "actions": {
+          "searchable_snapshot" : {
+            "snapshot_repository" : "my_minio_repository"
+          }
+        }
       },
       "delete": {
-        "min_age": "5m",
+        "min_age": "10m",
         "actions": {
           "delete": {}
         }
