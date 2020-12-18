@@ -1,0 +1,11 @@
+{
+  "index_patterns": [
+    "test*"
+  ],
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "index.lifecycle.name": "hot-warm-cold"
+    }
+  }
+}

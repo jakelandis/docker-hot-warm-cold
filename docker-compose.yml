@@ -1,0 +1,56 @@
+version: '3'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: elasticsearch
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      # - ELASTIC_PASSWORD=foobar
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9200:9200
+    volumes:
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD:/usr/share/elasticsearch/config/docker_host
+    networks:
+      - esnet
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.0
+    container_name: kibana
+    # environment:
+     # ELASTICSEARCH_URL: http://elasticsearch:9200
+    #  ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      # - XPACK_SECURITY_ENABLED=true
+      # - ELASTICSEARCH_USERNAME=elastic
+      # - ELASTICSEARCH_PASSWORD=foobar
+    ports:
+      - "5601:5601"
+    networks:
+      - esnet
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml      
+    depends_on:
+      - elasticsearch
+
+  minio:
+    image: minio/minio
+    container_name: minio 
+    command: server /data
+    environment:
+      - "MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE"
+      - "MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    ports:
+      - 9000:9000
+    volumes:
+      - /data:/home/jakelandis/workspace/data/minio
+    networks:
+      - esnet
+
+  
+
+networks:
+  esnet:

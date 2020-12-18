@@ -1,0 +1,6 @@
+network.host: 0.0.0.0
+discovery.type: single-node
+cluster.name: docker-cluster
+node.name: cluster1-node1
+xpack.license.self_generated.type: trial
+xpack.security.enabled: false
