@@ -135,7 +135,7 @@ Change THREADS and DOCS_PER_THREAD to change how many docs to generate.
 
 Run:
 ```
-docker run  -e DOCS_PER_THREAD=1000 -e THREADS=1 --network=$(docker network ls | grep docker-hot-warm-cold_esnet | cut -d ' ' -f 1) -v $PWD:/usr/share/logstash/config/docker_host docker.elastic.co/logstash/logstash:7.10.0 bin/logstash -f config/docker_host/ls.config 
+docker run  -e DOCS_PER_THREAD=6000 -e THREADS=1 --network=$(docker network ls | grep docker-hot-warm-cold_esnet | cut -d ' ' -f 1) -v $PWD:/usr/share/logstash/config/docker_host docker.elastic.co/logstash/logstash:7.10.0 bin/logstash -f config/docker_host/ls.config --pipeline.workers=1
 ```
 
 ### Watch the generations - command line
@@ -143,7 +143,7 @@ docker run  -e DOCS_PER_THREAD=1000 -e THREADS=1 --network=$(docker network ls |
 Requires curl and jq installed.
 
 ```bash
-watch 'curl -s localhost:9200/.ds-test-*/_count | jq ; curl -s localhost:9200/_cat/shards/.ds-test-*?v;echo '';curl -s localhost:9200/.ds-test-*/_ilm/explain | jq'
+watch -n .5 ' echo "* all docs in standard index* "; curl -s localhost:9200/.ds-test-*/_count | jq; echo "* all docs including those in searchable snapshot *"; curl -s localhost:9200/test/_count | jq; curl -s localhost:9200/_cat/shards?v'
 ```
 
 
@@ -170,7 +170,7 @@ Command line:
 Requires curl and jq installed.
 
 ```bash
-watch ' echo "* all docs in standard index* "; curl -s localhost:9200/.ds-test-*/_count | jq; echo "* all docs including those in searchable snapshot *"; curl -s localhost:9200/test/_count | jq; curl -s localhost:9200/_cat/shards?v'
+watch -n .5  ' echo "* all docs in standard index* "; curl -s localhost:9200/.ds-test-*/_count | jq; echo "* all docs including those in searchable snapshot *"; curl -s localhost:9200/test/_count | jq; curl -s localhost:9200/_cat/shards?v'
 ```
 
 Kibana: 
