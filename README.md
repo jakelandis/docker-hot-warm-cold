@@ -1,4 +1,4 @@
-# Searchable Snapshot
+# Hot Warm Cold
 ```
 docker-compose up
 ```
@@ -36,29 +36,25 @@ GET _nodes?filter_path=nodes.*.name,nodes.*.roles
 GET _cat/plugins
 ```
 
+#### Setup repository
 
-#### Cluster Settings
+
+Open Minio web UI at http://localhost:9000/minio/login and add a bucket "test", and set the permissions to read and write. 
+
+#### Setup cluster - command line 
+
 ```bash
-docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/cluster.settings -H 'Content-Type: application/json' -XPUT http://hot:9200/_cluster/settings
-```
-Kibana:
-```
-PUT _cluster/settings
-{
-  "transient": {
-    "indices.lifecycle.poll_interval": "1s"
-  }
-}
+docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/cluster.settings -H 'Content-Type: application/json' -XPUT http://hot:9200/_cluster/settings && \
+docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/ilm.policy -H 'Content-Type: application/json' -XPUT http://hot:9200/_ilm/policy/hot-warm-cold && \
+docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/index.template -H 'Content-Type: application/json' -XPUT http://hot:9200/_index_template/test_indexes && \
+docker exec -it hot curl --data "{\"type\":\"s3\",\"settings\":{\"bucket\":\"test\",\"endpoint\":\"$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minio):9000\",\"protocol\":\"http\"}}" -H 'Content-Type: application/json' -XPUT http://hot:9200/_snapshot/my_minio_repository
+
 ```
 
-#### ILM Policy
+#### Setup cluster - with Kibana
 
-Command line:
-```bash
-docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/ilm.policy -H 'Content-Type: application/json' -XPUT http://hot:9200/_ilm/policy/hot-warm-cold 
-```
+No need to do this if done with command line.
 
-Kibana:
 ```
 PUT _ilm/policy/hot-warm-cold
 {
@@ -94,13 +90,6 @@ PUT _ilm/policy/hot-warm-cold
 }
 ```
 
-#### Index Template
-
-```bash
-docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/index.template -H 'Content-Type: application/json' -XPUT http://hot:9200/_index_template/test_indexes
-```
-
-Kibana:
 ```
 PUT _index_template/test_indexes
 {
@@ -117,15 +106,11 @@ PUT _index_template/test_indexes
 }
 ```
 
-### Setup Repository
-
 Find the internal IP address of the minio host
 ```
 docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minio
 
 ```
-
-Open Minio web UI at http://localhost:9000/minio/login and add a bucket "test", and set the permissions to read and write. 
 
 ```
 PUT _snapshot/my_minio_repository
@@ -139,36 +124,30 @@ PUT _snapshot/my_minio_repository
 }
 ```
 
-Should recieve:
 
-```
-{
-  "acknowledged" : true
-}
-```
-
-
-### Generate 1000 documents
+### Generate documents
 
 ILM is configured to use 1000 per generation, i.e. roll over every 1000 documents. 
 
 _from the same directory and docker-compose up_
 
-Find the network ID of the docker-compose
-
-```
-docker network ls | grep docker-hot-warm-cold_esnet | cut -d ' ' -f 1
-```
-
-For example, network id is `b43fce182ec6`
+Change THREADS and DOCS_PER_THREAD to change how many docs to generate. 
 
 Run:
 ```
-docker run  --network=d88371f458a4 -v $PWD:/usr/share/logstash/config/docker_host docker.elastic.co/logstash/logstash:7.10.0 bin/logstash -f config/docker_host/ls.config 
+docker run  -e DOCS_PER_THREAD=1000 -e THREADS=1 --network=$(docker network ls | grep docker-hot-warm-cold_esnet | cut -d ' ' -f 1) -v $PWD:/usr/share/logstash/config/docker_host docker.elastic.co/logstash/logstash:7.10.0 bin/logstash -f config/docker_host/ls.config 
 ```
 
-### Watch the generations
+### Watch the generations - command line
 
+Requires curl and jq installed.
+
+```bash
+watch 'curl -s localhost:9200/.ds-test-*/_count | jq ; curl -s localhost:9200/_cat/shards/.ds-test-*?v;echo '';curl -s localhost:9200/.ds-test-*/_ilm/explain | jq'
+```
+
+
+### Watch the generations - Kibana line
 
 ```
 GET /_cat/shards/.ds-test-*?v
@@ -186,6 +165,15 @@ Repeat generation documents to create new generations.
 
 http://localhost:9000/minio/test/
 
+Command line:
+
+Requires curl and jq installed.
+
+```bash
+watch ' echo "* all docs in standard index* "; curl -s localhost:9200/.ds-test-*/_count | jq; echo "* all docs including those in searchable snapshot *"; curl -s localhost:9200/test/_count | jq; curl -s localhost:9200/_cat/shards?v'
+```
+
+Kibana: 
 ```
 GET restored-.ds-test-000001
 GET test/_count
