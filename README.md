@@ -125,27 +125,7 @@ PUT _index_template/test_indexes
   }
 }
 
-DELETE  /_slm/policy/every20m
-
-PUT /_slm/policy/every15m
-{
-  "schedule": "0 */15 * * * ?", 
-  "name": "<every15m-{now/d}>", 
-  "repository": "my_minio_repository", 
-  "config": { 
-    "indices": [".ds*"] 
-  },
-  "retention": { 
-    "expire_after": "30d", 
-    "min_count": 5, 
-    "max_count": 50 
-  }
-}
-
-
 GET .ds-test-*/_ilm/explain
-
-GET /_cluster/health
 
 ```
 
