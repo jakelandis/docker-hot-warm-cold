@@ -41,22 +41,37 @@ GET _cat/plugins
 
 Open Minio web UI at http://localhost:9000/minio/login and add a bucket "test", and set the permissions to read and write. 
 
-#### Setup cluster - command line 
 
-```bash
-docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/cluster.settings -H 'Content-Type: application/json' -XPUT http://hot:9200/_cluster/settings && \
-docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/ilm.policy -H 'Content-Type: application/json' -XPUT http://hot:9200/_ilm/policy/hot-warm-cold && \
-docker exec -it hot curl --data-binary @/usr/share/elasticsearch/config/docker_host/index.template -H 'Content-Type: application/json' -XPUT http://hot:9200/_index_template/test_indexes && \
-docker exec -it hot curl --data "{\"type\":\"s3\",\"settings\":{\"bucket\":\"test\",\"endpoint\":\"$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minio):9000\",\"protocol\":\"http\"}}" -H 'Content-Type: application/json' -XPUT http://hot:9200/_snapshot/my_minio_repository
-
+Find the internal IP address of the minio host
 ```
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minio
+```
+
+This IP is used below in the "endpoint" config. For example `172.19.0.2` -> ` "endpoint": "172.19.0.2:9000",`
 
 #### Setup cluster - with Kibana
 
-No need to do this if done with command line.
+
 
 ```
-PUT _ilm/policy/hot-warm-cold
+PUT _cluster/settings
+{
+  "persistent": {
+    "indices.lifecycle.poll_interval": "1s"
+  }
+}
+
+PUT _snapshot/my_minio_repository
+{
+  "type": "s3",
+  "settings": {
+    "bucket": "test",
+    "endpoint": "172.19.0.2:9000",
+    "protocol" : "http"
+  }
+}
+
+PUT _ilm/policy/hot-warm-cold-frozen
 {
   "policy": {
     "phases": {
@@ -72,25 +87,30 @@ PUT _ilm/policy/hot-warm-cold
         "actions": {}
       },
       "cold": {
-        "min_age": "3m",
+        "min_age": "1m",
+        "actions": {}
+      },
+      "frozen": {
+        "min_age": "1m",
         "actions": {
-          "searchable_snapshot" : {
-            "snapshot_repository" : "my_minio_repository"
+          "searchable_snapshot": {
+            "snapshot_repository": "my_minio_repository",
+            "force_merge_index": true
           }
         }
       },
       "delete": {
-        "min_age": "10m",
-        "actions": {
-          "delete": {}
-        }
+        "min_age": "5m",
+        "actions" : {
+            "delete" : {
+              "delete_searchable_snapshot" : false
+            }
+          }
       }
     }
   }
 }
-```
 
-```
 PUT _index_template/test_indexes
 {
   "index_patterns": [
@@ -99,30 +119,36 @@ PUT _index_template/test_indexes
   "data_stream": {},
   "template": {
     "settings": {
-      "index.lifecycle.name": "hot-warm-cold",
+      "index.lifecycle.name": "hot-warm-cold-frozen",
       "index.number_of_replicas" : 0
     }
   }
 }
-```
 
-Find the internal IP address of the minio host
-```
-docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minio
+DELETE  /_slm/policy/every20m
 
-```
-
-```
-PUT _snapshot/my_minio_repository
+PUT /_slm/policy/every15m
 {
-  "type": "s3",
-  "settings": {
-    "bucket": "test",
-    "endpoint": "172.26.0.4:9000",
-    "protocol" : "http"
+  "schedule": "0 */15 * * * ?", 
+  "name": "<every15m-{now/d}>", 
+  "repository": "my_minio_repository", 
+  "config": { 
+    "indices": [".ds*"] 
+  },
+  "retention": { 
+    "expire_after": "30d", 
+    "min_count": 5, 
+    "max_count": 50 
   }
 }
+
+
+GET .ds-test-*/_ilm/explain
+
+GET /_cluster/health
+
 ```
+
 
 
 ### Generate documents
@@ -145,39 +171,3 @@ Requires curl and jq installed.
 ```bash
 watch -n .5 ' echo "* all docs in standard index* "; curl -s localhost:9200/.ds-test-*/_count | jq; echo "* all docs including those in searchable snapshot *"; curl -s localhost:9200/test/_count | jq; curl -s localhost:9200/_cat/shards?v'
 ```
-
-
-### Watch the generations - Kibana line
-
-```
-GET /_cat/shards/.ds-test-*?v
-GET .ds-test-*/_ilm/explain
-
-GET .ds-test-*/_count
-GET _data_stream/test
-GET /_cat/indices?v
-
-```
-
-Repeat generation documents to create new generations. 
-
-### See the snapshot in Minio
-
-http://localhost:9000/minio/test/
-
-Command line:
-
-Requires curl and jq installed.
-
-```bash
-watch -n .5  ' echo "* all docs in standard index* "; curl -s localhost:9200/.ds-test-*/_count | jq; echo "* all docs including those in searchable snapshot *"; curl -s localhost:9200/test/_count | jq; curl -s localhost:9200/_cat/shards?v'
-```
-
-Kibana: 
-```
-GET restored-.ds-test-000001
-GET test/_count
-GET /_cat/shards/restored*?v 
-```
-
-What kind of magic is this ? 

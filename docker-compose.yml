@@ -1,11 +1,12 @@
 version: '3'
 services:
   elasticsearch-hot:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0-SNAPSHOT
     container_name: hot
     command: ["sh", "-c", "/usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 -s --batch && /usr/local/bin/docker-entrypoint.sh"]
     environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      #- "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.plugins.staging=05454a9a"
       # - ELASTIC_PASSWORD=foobar
     ulimits:
       memlock:
@@ -21,11 +22,12 @@ services:
       - esnet
 
   elasticsearch-warm:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0-SNAPSHOT
     container_name: warm
     command: ["sh", "-c", "/usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 -s --batch && /usr/local/bin/docker-entrypoint.sh"]
     environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      #- "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.plugins.staging=05454a9a"
       # - ELASTIC_PASSWORD=foobar
     ulimits:
       memlock:
@@ -41,11 +43,12 @@ services:
       - esnet
 
   elasticsearch-cold:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0-SNAPSHOT
     container_name: cold
     command: ["sh", "-c", "/usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 -s --batch && /usr/local/bin/docker-entrypoint.sh"]
     environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      #- "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.plugins.staging=05454a9a"
     ulimits:
       memlock:
         soft: -1
@@ -58,9 +61,29 @@ services:
       - $PWD:/usr/share/elasticsearch/config/docker_host
     networks:
       - esnet
+
+  elasticsearch-frozen:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0-SNAPSHOT
+    container_name: frozen
+    command: ["sh", "-c", "/usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 -s --batch && /usr/local/bin/docker-entrypoint.sh"]
+    environment:
+      #- "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.plugins.staging=05454a9a"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9203:9203
+    volumes:
+      - $PWD/frozen/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+      - $PWD/frozen/elasticsearch.keystore:/usr/share/elasticsearch/config/elasticsearch.keystore  
+      - $PWD:/usr/share/elasticsearch/config/docker_host
+    networks:
+      - esnet    
  
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.10.0
+    image: docker.elastic.co/kibana/kibana:7.13.0-SNAPSHOT
     container_name: kibana
     ports:
       - "5601:5601"

@@ -1,9 +1,10 @@
 network.host: _site_
 cluster.name: docker
-node.name: cold
+node.name: frozen
 xpack.license.self_generated.type: trial
 discovery.seed_hosts: ['hot','warm', 'cold', 'frozen']
 cluster.initial_master_nodes: ['hot']
-http.port: 9202
+http.port: 9203
 xpack.security.enabled: false
-node.roles: [ master, data_cold]
+node.roles: [ master, data_frozen]
+xpack.searchable.snapshot.shared_cache.size: '100mb'

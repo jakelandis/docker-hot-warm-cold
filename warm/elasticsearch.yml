@@ -2,8 +2,8 @@ network.host: _site_
 cluster.name: docker
 node.name: warm
 xpack.license.self_generated.type: trial
-discovery.seed_hosts: ['hot','warm', 'cold']
+discovery.seed_hosts: ['hot','warm', 'cold', 'frozen']
 cluster.initial_master_nodes: ['hot']
 http.port: 9201
 xpack.security.enabled: false
-node.roles: [ master, data_warm, data_content]
+node.roles: [ master, data_warm]
