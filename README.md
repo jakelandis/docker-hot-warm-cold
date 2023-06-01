@@ -4,7 +4,7 @@ docker-compose up
 ```
 ### Access Minio
 
-http://localhost:9000/minio/login
+http://localhost:9001/minio/login
 
 Access Key:
 ```
@@ -39,7 +39,7 @@ GET _cat/plugins
 #### Setup repository
 
 
-Open Minio web UI at http://localhost:9000/minio/login and add a bucket "test", and set the permissions to read and write. 
+Open Minio web UI at http://localhost:9001/minio/login and add a bucket "test", and set the permissions to read and write. 
 
 #### Setup cluster - command line 
 
@@ -163,7 +163,7 @@ Repeat generation documents to create new generations.
 
 ### See the snapshot in Minio
 
-http://localhost:9000/minio/test/
+http://localhost:9001/minio/test/
 
 Command line:
 
